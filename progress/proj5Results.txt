@@ -1,0 +1,89 @@
+Run #1, i=8, j=1, N=256, B1=131072, B2=65536, T=10
+MergeSort time: 543ms
+Saving image: images/output_image_N256_T10.jpg
+
+Run #2, i=8, j=2, N=256, B1=131072, B2=65536, T=100
+MergeSort time: 249ms
+Saving image: images/output_image_N256_T100.jpg
+
+Run #3, i=8, j=3, N=256, B1=131072, B2=65536, T=1000
+MergeSort time: 249ms
+Saving image: images/output_image_N256_T1000.jpg
+
+Run #4, i=8, j=4, N=256, B1=131072, B2=65536, T=10000
+MergeSort time: 312ms
+Saving image: images/output_image_N256_T10000.jpg
+
+Run #5, i=8, j=5, N=256, B1=131072, B2=65536, T=100000
+MergeSort time: 823ms
+Saving image: images/output_image_N256_T100000.jpg
+
+
+
+Run #1, i=9, j=1, N=512, B1=524288, B2=262144, T=10
+MergeSort time: 8410ms
+Saving image: images/output_image_N512_T10.jpg
+
+Run #2, i=9, j=2, N=512, B1=524288, B2=262144, T=100
+MergeSort time: 3723ms
+Saving image: images/output_image_N512_T100.jpg
+
+Run #3, i=9, j=3, N=512, B1=524288, B2=262144, T=1000
+MergeSort time: 3980ms
+Saving image: images/output_image_N512_T1000.jpg
+
+Run #4, i=9, j=4, N=512, B1=524288, B2=262144, T=10000
+MergeSort time: 4422ms
+Saving image: images/output_image_N512_T10000.jpg
+
+Run #5, i=9, j=5, N=512, B1=524288, B2=262144, T=100000
+MergeSort time: 5614ms
+Saving image: images/output_image_N512_T100000.jpg
+
+
+
+Available processors (cores): 8
+Available memory (bytes): 63446320
+
+
+Run #1, i=10, j=1, N=1024, B1=2097152, B2=1048576, T=10
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  Internal Error (safepoint.cpp:318), pid=2774, tid=13571
+#  guarantee(PageArmed == 0) failed: invariant
+#
+# JRE version: Java(TM) SE Runtime Environment (7.0_51-b13) (build 1.7.0_51-b13)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (24.51-b03 mixed mode bsd-amd64 compressed oops)
+# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+# An error report file with more information is saved as:
+# /Users/rachaelbirky/Documents/3_juniorYear/341/Project5/hs_err_pid2774.log
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.sun.com/bugreport/crash.jsp
+#
+
+Available processors (cores): 8
+Available memory (bytes): 63446320
+
+
+Run #1, i=10, j=1, N=1024, B1=2097152, B2=1048576, T=10
+MergeSort time: 138956ms
+Saving image: images/output_image_N1024_T10.jpg
+
+Run #1, i=10, j=2, N=1024, B1=2097152, B2=1048576, T=100
+MergeSort time: 135888ms
+Saving image: images/output_image_N1024_T100.jpg
+
+Run #1, i=10, j=3, N=1024, B1=2097152, B2=1048576, T=1000
+MergeSort time: 136854ms
+Saving image: images/output_image_N1024_T1000.jpg
+
+Run #1, i=10, j=4, N=1024, B1=2097152, B2=1048576, T=10000
+MergeSort time: 135918ms
+Saving image: images/output_image_N1024_T10000.jpg
+
+Run #1, i=10, j=5, N=1024, B1=2097152, B2=1048576, T=100000
+MergeSort time: 171718ms
+Saving image: images/output_image_N1024_T100000.jpg

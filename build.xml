@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Project 5" default="compile" basedir=".">
+
+	<description>Rachael Birky | CMSC 341 | Project 5</description>
+	
+	<!-- global properties -->
+	<property name="source.dir" location="src/"/>
+	<property name="build.dir" location="bin/"/>
+	<property name="doc.dir" location="doc/"/>
+	<property name="images.dir" location = "images/"/>
+	<property name="main.class" value="project5.Project5"/>
+	
+	<target name="init" description="create all directories">
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${doc.dir}"/>
+		<mkdir dir="${images.dir}"/>
+	</target>
+	
+	<target name="compile" depends="init" description="compiles all files">
+		<javac includeantruntime="false" srcdir="${source.dir}" destdir="${build.dir}"/>	
+	</target>
+	
+	<target name="run" depends="compile" description="runs the project driver">
+		<java dir="${build.dir}" classname="${main.class}" fork="yes">
+			<arg line="${args}"/>
+		</java>
+	</target>
+	
+	<target name="clean" description="deletes files">
+		<delete dir="${build.dir}"/>
+		<delete dir="${doc.dir}"/>
+		<delete dir="${images.dir}"/>
+		<delete>
+			<fileset defaultexcludes="no" dir="${source.dir}" includes="**/*~"/>
+		</delete>
+	</target>
+	
+	<target name="doc" depends="init" description="generate javadoc">
+		<javadoc sourcepath="${source.dir}" destdir="${doc.dir}"/>
+	</target>
+
+</project>

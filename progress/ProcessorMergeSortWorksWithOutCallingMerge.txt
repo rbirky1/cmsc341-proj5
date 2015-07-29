@@ -1,0 +1,230 @@
+
+package project5;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+
+import javax.imageio.ImageIO;
+
+/**
+ * @author Rachael Birky
+ * @version 05.09.2014
+ * 
+ * <p> Processor.java
+ * <p> This class processes data using threads and ForkJoin
+ * 		It 1. sorts 2. normalizes 3. saves an image
+ */
+public class Processor implements Runnable{
+
+	ForkJoinPool threadPool = new ForkJoinPool();
+
+	int[] buff2;
+	int[] buff2Scaled;
+	int N;
+	int THRESHOLD;
+
+	public Processor(int[] aBuffer, int N, int T){
+		buff2 = aBuffer;
+		buff2Scaled = new int[buff2.length];
+		this.N = N;
+		this.THRESHOLD = T;
+	}
+
+	//Debug method
+	public void printBuff(){
+		for(int i : buff2){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	//Boot-strap mergeSort
+	public void threadMergeSort(){
+		threadMergeSort(buff2, 0, buff2.length);
+	}
+
+	public void threadMergeSort(int[] array, int first, int last){
+		threadPool.invoke(new MergeSort(array, first, last, this.THRESHOLD));
+	}
+
+	@SuppressWarnings("serial")
+	class MergeSort extends RecursiveAction {
+
+		protected int THRESHOLD;
+		int[] array;
+		int[] tempArray;
+		int first;
+		int last;
+
+		public MergeSort(int[] array, int first, int last, int T) {
+			this.THRESHOLD = T;
+			this.array = array;
+			this.first = first;
+			this.last = last;
+		}
+
+		protected void compute() {
+			if (last-first < this.THRESHOLD)
+				//Compute directly
+				insertionSort(array);
+			else {
+				//Split Task
+				int center = (first+last)/2;
+				MergeSort sortLeft = new MergeSort(array, first, center, this.THRESHOLD); //merge sort left
+				MergeSort sortRight = new MergeSort(array, center+1, last-center, this.THRESHOLD); //merge sort right
+				invokeAll(sortLeft, sortRight);
+				//merge(array, first, center, last);
+			}
+		}
+
+		/**
+		 * <p> Method: merge()  
+		 * <p> Description: Combines two sorted lists into one
+		 * @param data - array of data
+		 * @param first - beginning index of data
+		 * @param leftSize - size of first "array"
+		 * @param rightSize - size of second "array" 
+		 */
+		private void merge(int[ ] data, int first, int leftSize, int rightSize){
+			int[ ] temp = new int[leftSize+rightSize];
+			int index  = 0;
+			int leftIndex = 0;
+			int rightIndex = 0;
+			int i;
+			while ((leftIndex < leftSize) && (rightIndex < rightSize)){
+				if (data[first + leftIndex] < data[first + leftSize + rightIndex])
+					temp[index++] = data[first + (leftIndex++)];
+				else
+					temp[index++] = data[first + leftSize + (rightIndex++)];
+			}
+
+			while (leftIndex < leftSize){
+				temp[index++] = data[first + (leftIndex++)];
+			}
+			while (rightIndex < rightSize){
+				temp[index++] = data[first + leftSize + (rightIndex++)];
+			}
+
+			for (i = 0; i < leftSize+rightSize; i++)
+				data[first + i] = temp[i];
+		}
+
+		/**
+		 * <p> Method: insertionSort()
+		 * <p> Description: Sorts by inserting the item at the current index
+		 * 		so that all items before it are lesser in value
+		 * @param subArray - list to be sorted
+		 */
+		public void insertionSort(int[] subArray){
+			for (int i = 1; i<subArray.length; i++){
+				int toCompare = subArray[i];
+				int j = i;
+				while (j>0 && (subArray[j-1] > toCompare)){
+					subArray[j] = subArray[j-1];
+					j--;
+				}
+				subArray[j] = toCompare;
+			}
+		}
+
+	}
+
+	/**
+	 * <p> Method: normalize()
+	 * <p> Description: Adjusts the range of data to the range 0-255
+	 */
+	public void normalize(){
+		int i=0;
+		for(Integer x : buff2){
+			int min = 0;
+			int max = 4096;
+			int a = 0;
+			int b = 255;
+			int newX = ((((b-a)*(x-min))/(max-min))+a);
+			buff2Scaled[i] = newX;
+			i++;
+		}		
+	}
+
+	//Debug method
+	public void printBuffScaled(){
+		for(int i : buff2Scaled){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	/**
+	 * <p> Method: saveImage()
+	 * <p> Description: Saves a gradient image representing the sorted
+	 * 		and normalized data to the ./images folder
+	 */
+	public void saveImage(){
+		int width = N;
+		int height = N;
+
+		if (buff2Scaled.length != N*N){
+			System.out.println("ERROR");
+			return;
+		}
+
+		try{
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+			int index = 0;
+			int value = 0;
+			while (index<buff2Scaled.length) {
+				value = buff2Scaled[index];
+				bufferedImage.setRGB((int)index%width, (int)index/width, (value << 16) + (value << 8) + value);
+				index++;
+			}
+			String filename = String.format("images/output_image_N%d_T%d.jpg", N, THRESHOLD);
+			System.out.println("Saving image: " + filename);
+			ImageIO.write(bufferedImage, "jpg", new File(filename));
+		}
+		catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
+
+
+
+	}
+
+	//Change .sort() to fork/join method
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		long t1 = System.currentTimeMillis();
+		this.threadMergeSort();
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1)+"ms");
+		normalize();
+		saveImage();
+	}
+
+	//Unit Testing
+	public static void main(String[] args){
+		int[] l = new int[10000];
+		int n = 100;
+		int t = 10;
+		Random generator = new Random();
+		for (int i=0; i<10000; i++){
+			l[i]= generator.nextInt(4097);
+		}
+		Processor p = new Processor(l,n,t);
+		long t1 = System.currentTimeMillis();
+		//p.sort();
+		p.threadMergeSort();
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1)+"ms");
+		p.printBuff();
+		p.normalize();
+		p.printBuffScaled();
+		p.saveImage();
+	}
+}

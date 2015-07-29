@@ -1,0 +1,41 @@
+Purpose of join() method?
+Booleans not working?
+Does the buffer have code in ints run method?
+Do we need to write our own insertion sort?
+Why a for loop in the last example?
+Processor is a thread?
+Buffer2 in Receiver class must be a buffer object?
+Receiver thread returns a buffer?
+Why does the buffer need the N value?
+Processor's run method does sort then image saving, while printing info, or is that actually in main?
+file path?  will it know...?
+
+follow example number 3
+
+Make sat thread sleep until more space
+actually add outside while loop
+
+can send data to merge sort in consumer
+
+check that you have n^2 items
+ isPrime => merge sort
+	fifth file
+
+split data in half (find center)
+creates many threads, joined later
+process for left and right side, given merge sort class/function
+invokeAll(l,r) execute next statement after given threads are done
+or
+start() / join()  -OR- compute() / join() 
+when size T, call insertion sort
+
+implement merge function takes two data elemts and combine in sorted way
+
+.join() waits for a process to finish (done in driver)
+
+Main
+|	|	|	|
+b	p	c	
+
+don't exit until done
+call .join(), then can exit

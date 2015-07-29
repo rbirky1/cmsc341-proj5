@@ -1,0 +1,45 @@
+Available processors (cores): 8
+Available memory (bytes): 63446320
+
+
+Run #1, i=8, j=1, N=256, B1=131072, B2=65536, T=10
+MergeSort time: 61ms
+Saving image: images/output_image_N256_T10.jpg
+
+Run #2, i=8, j=2, N=256, B1=131072, B2=65536, T=100
+MergeSort time: 3ms
+Saving image: images/output_image_N256_T100.jpg
+
+Run #3, i=8, j=3, N=256, B1=131072, B2=65536, T=1000
+MergeSort time: 5ms
+Saving image: images/output_image_N256_T1000.jpg
+
+Run #4, i=8, j=4, N=256, B1=131072, B2=65536, T=10000
+MergeSort time: 56ms
+Saving image: images/output_image_N256_T10000.jpg
+
+Run #5, i=8, j=5, N=256, B1=131072, B2=65536, T=100000
+MergeSort time: 783ms
+Saving image: images/output_image_N256_T100000.jpg
+
+
+Run #1, i=9, j=1, N=512, B1=524288, B2=262144, T=10
+MergeSort time: 60ms
+Saving image: images/output_image_N512_T10.jpg
+
+Run #2, i=9, j=2, N=512, B1=524288, B2=262144, T=100
+MergeSort time: 270ms
+Saving image: images/output_image_N512_T100.jpg
+
+Run #3, i=9, j=3, N=512, B1=524288, B2=262144, T=1000
+MergeSort time: 63ms
+Saving image: images/output_image_N512_T1000.jpg
+
+Run #4, i=9, j=4, N=512, B1=524288, B2=262144, T=10000
+MergeSort time: 154ms
+Saving image: images/output_image_N512_T10000.jpg
+
+Run #5, i=9, j=5, N=512, B1=524288, B2=262144, T=100000
+MergeSort time: 863ms
+Saving image: images/output_image_N512_T100000.jpg
+

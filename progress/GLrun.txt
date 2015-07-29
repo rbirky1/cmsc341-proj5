@@ -1,0 +1,38 @@
+linux1[8]% cd cs341proj/proj5                                           
+linux1[9]% ls
+build.xml  graphs  src
+linux1[10]% ant run
+Buildfile: build.xml
+
+init:
+    [mkdir] Created dir: /afs/umbc.edu/users/s/l/slupoli/pub/cs341/rbirky1/proj5/bin
+    [mkdir] Created dir: /afs/umbc.edu/users/s/l/slupoli/pub/cs341/rbirky1/proj5/doc
+    [mkdir] Created dir: /afs/umbc.edu/users/s/l/slupoli/pub/cs341/rbirky1/proj5/images
+
+compile:
+    [javac] Compiling 5 source files to /afs/umbc.edu/users/s/l/slupoli/pub/cs341/rbirky1/proj5/bin
+
+run:
+     [java] Available processors (cores): 2
+     [java] Available memory (bytes): 123081744
+     [java] 
+     [java] 
+     [java] Run #1, i=8, j=1, N=256, B1=131072, B2=65536, T=10
+     [java] MergeSort time: 43ms
+     [java] Saving image: ./images/output_image_N256_T10.jpg
+     [java] 
+     [java] Run #2, i=8, j=2, N=256, B1=131072, B2=65536, T=100
+     [java] MergeSort time: 4ms
+     [java] Saving image: ./images/output_image_N256_T100.jpg
+     [java] 
+     [java] Run #3, i=8, j=3, N=256, B1=131072, B2=65536, T=1000
+     [java] MergeSort time: 5ms
+     [java] Saving image: ./images/output_image_N256_T1000.jpg
+     [java] 
+     [java] Run #4, i=8, j=4, N=256, B1=131072, B2=65536, T=10000
+     [java] MergeSort time: 38ms
+     [java] Saving image: ./images/output_image_N256_T10000.jpg
+     [java] 
+     [java] Run #5, i=8, j=5, N=256, B1=131072, B2=65536, T=100000
+     [java] MergeSort time: 747ms
+     [java] Saving image: ./images/output_image_N256_T100000.jpg

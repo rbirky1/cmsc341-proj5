@@ -1,0 +1,1955 @@
+package project5;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+
+import javax.imageio.ImageIO;
+
+/**
+ * @author Rachael Birky
+ * @version 05.09.2014
+ * 
+ * <p> Processor.java
+ * <p> This class processes data using threads and ForkJoin
+ * 		It 1. sorts 2. normalizes 3. saves an image
+ */
+public class Processor implements Runnable{
+
+	ForkJoinPool threadPool = new ForkJoinPool();
+
+	int[] buff2;
+	int[] buff2Scaled;
+	int N;
+	int THRESHOLD;
+
+	public Processor(int[] aBuffer, int N, int T){
+		buff2 = aBuffer;
+		buff2Scaled = new int[buff2.length];
+		this.N = N;
+		this.THRESHOLD = T;
+	}
+
+	//Boot-strap mergeSort
+	/**
+	* <p> Method:  
+	* <p> Description: Bootstrap method that calls a threaded method that
+	* 		delegates data to sort to appropriate methods
+	* 		by invoking Sorter objects
+	*/
+	public void threadMergeSort(){
+		threadMergeSort(buff2, 0, buff2.length);
+	}
+
+	/**
+	* <p> Method: threadMergeSort()
+	* <p> Description: Delegates data to sort to appropriate methods
+	* 		by invoking Sorter objects 
+	*/
+	public void threadMergeSort(int[] array, int first, int last){
+		if(last-first < this.THRESHOLD){
+			insertionSort(array); return;
+		}
+		int[] tempArray = new int[array.length];
+		threadPool.invoke(new Sorter(array, tempArray, first, last, this.THRESHOLD));
+	}
+
+	/**
+	 * @author Rachael Birky
+	 * @version 05.10.2014
+	 * 
+	 * <p> Sorter.java
+	 * <p> This class 
+	 */
+	@SuppressWarnings("serial")
+	static class Sorter extends RecursiveAction {
+
+		protected int THRESHOLD;
+		int[] array;
+		int[] tempArray;
+		int first;
+		int last;
+
+		/**
+		* <p> Constructor
+		* <p> Description: Creates a new SortTask object that keeps track of the
+		* 		treshold and holds the current array data
+		* @param 
+		*/
+		public Sorter(int[] array, int[] tempArray, int first, int last, int T) {
+			this.THRESHOLD = T;
+			this.array = array;
+			this.tempArray = tempArray;
+			this.first = first;
+			this.last = last;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.util.concurrent.RecursiveAction#compute()
+		 */
+		protected void compute() {
+			if (last-first < this.THRESHOLD)
+				//Compute directly
+				insertionSort(array);
+			else {
+				//Split Task
+				int center = (first+last)/2;
+				Sorter sortLeft = new Sorter(array, tempArray, first, center, this.THRESHOLD); //merge sort left
+				Sorter sortRight = new Sorter(array, tempArray, first+center, last-center, this.THRESHOLD); //merge sort right
+				invokeAll(sortLeft, sortRight);
+			}
+		}
+	}
+
+	/**
+	 * <p> Method: mergeSort()
+	 * <p> Description: Boot-strap method that takes an array and
+	 * 		provides the necessary information to the recursive function
+	 * @param data - array to be sorted 
+	 */
+	public void mergeSort(int[] data){
+		mergeSort(data, 0, data.length);
+	}
+
+	/**
+	 * <p> Method: mergeSort()
+	 * <p> Description: Recursive function that splits data in half
+	 * 		and sorts by swapping subArrays
+	 * @param data - list to be sorted
+	 * @param first - index of first item
+	 * @return size - size of array (idex of last item)
+	 */
+	private void mergeSort(int[ ] data, int first, int size){
+		int leftSize;
+		int rightSize;
+
+		if (size > 1){
+			leftSize = size / 2;
+			rightSize = size - leftSize;
+
+			mergeSort(data, first, leftSize);
+			mergeSort(data, first + leftSize, rightSize);
+			merge(data, first, leftSize, rightSize);
+		}
+	} 
+
+	/**
+	 * <p> Method: merge()  
+	 * <p> Description: Combines two sorted lists into one
+	 * @param data - array of data
+	 * @param first - beginning index of data
+	 * @param leftSize - size of first "array"
+	 * @param rightSize - size of second "array" 
+	 */
+	private static void merge(int[ ] data, int first, int leftSize, int rightSize){
+		int[ ] temp = new int[leftSize+rightSize];
+		int index  = 0;
+		int leftIndex = 0;
+		int rightIndex = 0;
+		int i;
+		while ((leftIndex < leftSize) && (rightIndex < rightSize)){
+			if (data[first + leftIndex] < data[first + leftSize + rightIndex])
+				temp[index++] = data[first + (leftIndex++)];
+			else
+				temp[index++] = data[first + leftSize + (rightIndex++)];
+		}
+
+		while (leftIndex < leftSize){
+			temp[index++] = data[first + (leftIndex++)];
+		}
+		while (rightIndex < rightSize){
+			temp[index++] = data[first + leftSize + (rightIndex++)];
+		}
+
+		for (i = 0; i < leftSize+rightSize; i++)
+			data[first + i] = temp[i];
+	}
+
+	/**
+	 * <p> Method: insertionSort()
+	 * <p> Description: Sorts by inserting the item at the current index
+	 * 		so that all items before it are lesser in value
+	 * @param subArray - list to be sorted
+	 */
+	public static void insertionSort(int[] subArray){
+		for (int i = 1; i<subArray.length; i++){
+			int toCompare = subArray[i];
+			int j = i;
+			while (j>0 && (subArray[j-1] > toCompare)){
+				subArray[j] = subArray[j-1];
+				j--;
+			}
+			subArray[j] = toCompare;
+		}
+	}
+
+	/**
+	 * <p> Method: normalize()
+	 * <p> Description: Adjusts the range of data to the range 0-255
+	 */
+	public void normalize(){
+		int i=0;
+		for(Integer x : buff2){
+			int min = 0;
+			int max = 4096;
+			int a = 0;
+			int b = 255;
+			int newX = ((((b-a)*(x-min))/(max-min))+a);
+			buff2Scaled[i] = newX;
+			i++;
+		}		
+	}
+
+	/**
+	 * <p> Method: saveImage()
+	 * <p> Description: Saves a gradient image representing the sorted
+	 * 		and normalized data to the ./images folder
+	 */
+	public void saveImage(){
+		int width = N;
+		int height = N;
+
+		if (buff2Scaled.length != N*N){
+			System.out.println("ERROR");
+			return;
+		}
+
+		try{
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+			int index = 0;
+			int value = 0;
+			while (index<buff2Scaled.length) {
+				value = buff2Scaled[index];
+				bufferedImage.setRGB((int)index%width, (int)index/width, (value << 16) + (value << 8) + value);
+				index++;
+			}
+			String filename = String.format("images/output_image_N%d_T%d.jpg", N, THRESHOLD);
+			System.out.println("Saving image: " + filename);
+			ImageIO.write(bufferedImage, "jpg", new File(filename));
+		}
+		catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
+
+
+
+	}
+
+	//Change .sort() to fork/join method
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		long t1 = System.currentTimeMillis();
+		this.threadMergeSort(); //CHANGE TO FORK/JOIN sort
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1)+"ms");
+		normalize();
+		saveImage();
+	}
+
+}
+************
+
+package project5;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+
+import javax.imageio.ImageIO;
+
+/**
+ * @author Rachael Birky
+ * @version 05.09.2014
+ * 
+ * <p> Processor.java
+ * <p> This class processes data using threads and ForkJoin
+ * 		It 1. sorts 2. normalizes 3. saves an image
+ */
+public class Processor implements Runnable{
+
+	ForkJoinPool threadPool = new ForkJoinPool();
+
+	int[] buff2;
+	int[] buff2Scaled;
+	int N;
+	int THRESHOLD;
+
+	public Processor(int[] aBuffer, int N, int T){
+		buff2 = aBuffer;
+		buff2Scaled = new int[buff2.length];
+		this.N = N;
+		this.THRESHOLD = T;
+	}
+
+	//Temporary method
+	public void sort(){
+		mergeSort(buff2);
+	}
+
+	//Debug method
+	public void printBuff(){
+		for(int i : buff2){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	//Boot-strap mergeSort
+	public void threadMergeSort(){
+		threadMergeSort(buff2, 0, buff2.length);
+	}
+
+	public void threadMergeSort(int[] array, int first, int last){
+		if(last-first < this.THRESHOLD){
+			insertionSort(array); return;
+		}
+		int[] tempArray = new int[array.length];
+		threadPool.invoke(new Sorter(array, tempArray, first, last, this.THRESHOLD));
+	}
+
+	@SuppressWarnings("serial")
+	static class Sorter extends RecursiveAction {
+
+		protected int THRESHOLD;
+		int[] array;
+		int[] tempArray;
+		int first;
+		int last;
+
+		public Sorter(int[] array, int[] tempArray, int first, int last, int T) {
+			this.THRESHOLD = T;
+			this.array = array;
+			this.tempArray = tempArray;
+			this.first = first;
+			this.last = last;
+		}
+
+		protected void compute() {
+			if (last-first < this.THRESHOLD)
+				//Compute directly
+				insertionSort(array);
+			else {
+				//Split Task
+				int center = (first+last)/2;
+				Sorter sortLeft = new Sorter(array, tempArray, first, center, this.THRESHOLD); //merge sort left
+				Sorter sortRight = new Sorter(array, tempArray, first+center, last-center, this.THRESHOLD); //merge sort right
+				invokeAll(sortLeft, sortRight);
+				//merge(array, first, center, last);
+			}
+		}
+	}
+
+	/**
+	 * <p> Method: mergeSort()
+	 * <p> Description: Boot-strap method that takes an array and
+	 * 		provides the necessary information to the recursive function
+	 * @param data - array to be sorted 
+	 */
+	public void mergeSort(int[] data){
+		System.out.println("Using MERGE sort.");
+		mergeSort(data, 0, data.length);
+	}
+
+	/**
+	 * <p> Method: mergeSort()
+	 * <p> Description: Recursive function that splits data in half
+	 * 		and sorts by swapping subArrays
+	 * @param data - list to be sorted
+	 * @param first - index of first item
+	 * @return size - size of array (idex of last item)
+	 */
+	private void mergeSort(int[ ] data, int first, int size){
+		int leftSize;
+		int rightSize;
+
+		if (size > 1){
+			leftSize = size / 2;
+			rightSize = size - leftSize;
+
+			mergeSort(data, first, leftSize);
+			mergeSort(data, first + leftSize, rightSize);
+			merge(data, first, leftSize, rightSize);
+		}
+	} 
+
+	/**
+	 * <p> Method: merge()  
+	 * <p> Description: Combines two sorted lists into one
+	 * @param data - array of data
+	 * @param first - beginning index of data
+	 * @param leftSize - size of first "array"
+	 * @param rightSize - size of second "array" 
+	 */
+	private static void merge(int[ ] data, int first, int leftSize, int rightSize){
+		int[ ] temp = new int[leftSize+rightSize];
+		int index  = 0;
+		int leftIndex = 0;
+		int rightIndex = 0;
+		int i;
+		while ((leftIndex < leftSize) && (rightIndex < rightSize)){
+			if (data[first + leftIndex] < data[first + leftSize + rightIndex])
+				temp[index++] = data[first + (leftIndex++)];
+			else
+				temp[index++] = data[first + leftSize + (rightIndex++)];
+		}
+
+		while (leftIndex < leftSize){
+			temp[index++] = data[first + (leftIndex++)];
+		}
+		while (rightIndex < rightSize){
+			temp[index++] = data[first + leftSize + (rightIndex++)];
+		}
+
+		for (i = 0; i < leftSize+rightSize; i++)
+			data[first + i] = temp[i];
+	}
+
+	/**
+	 * <p> Method: insertionSort()
+	 * <p> Description: Sorts by inserting the item at the current index
+	 * 		so that all items before it are lesser in value
+	 * @param subArray - list to be sorted
+	 */
+	public static void insertionSort(int[] subArray){
+		//System.out.println("Using insertion sort.");
+		for (int i = 1; i<subArray.length; i++){
+			int toCompare = subArray[i];
+			int j = i;
+			while (j>0 && (subArray[j-1] > toCompare)){
+				subArray[j] = subArray[j-1];
+				j--;
+			}
+			subArray[j] = toCompare;
+		}
+	}
+
+	/**
+	 * <p> Method: normalize()
+	 * <p> Description: Adjusts the range of data to the range 0-255
+	 */
+	public void normalize(){
+		int i=0;
+		for(Integer x : buff2){
+			int min = 0;
+			int max = 4096;
+			int a = 0;
+			int b = 255;
+			int newX = ((((b-a)*(x-min))/(max-min))+a);
+			buff2Scaled[i] = newX;
+			i++;
+		}		
+	}
+
+	//Debug method
+	public void printBuffScaled(){
+		for(int i : buff2Scaled){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	/**
+	 * <p> Method: saveImage()
+	 * <p> Description: Saves a gradient image representing the sorted
+	 * 		and normalized data to the ./images folder
+	 */
+	public void saveImage(){
+		int width = N;
+		int height = N;
+
+		if (buff2Scaled.length != N*N){
+			System.out.println("ERROR");
+			return;
+		}
+
+		try{
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+			int index = 0;
+			int value = 0;
+			while (index<buff2Scaled.length) {
+				value = buff2Scaled[index];
+				bufferedImage.setRGB((int)index%width, (int)index/width, (value << 16) + (value << 8) + value);
+				index++;
+			}
+			String filename = String.format("images/output_image_N%d_T%d.jpg", N, THRESHOLD);
+			System.out.println("Saving image: " + filename);
+			ImageIO.write(bufferedImage, "jpg", new File(filename));
+		}
+		catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
+
+
+
+	}
+
+	//Change .sort() to fork/join method
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		long t1 = System.currentTimeMillis();
+		this.threadMergeSort(); //CHANGE TO FORK/JOIN sort
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1));
+		normalize();
+		saveImage();
+	}
+
+	//Unit Testing
+//	public static void main(String[] args){
+//		int[] l = new int[100];
+//		int n = 10;
+//		int t = 10;
+//		Random generator = new Random();
+//		for (int i=0; i<100; i++){
+//			l[i]= generator.nextInt(4097);
+//		}
+//		Processor p = new Processor(l,n,t);
+//		long t1 = System.currentTimeMillis();
+//		//p.sort();
+//		p.threadMergeSort();
+//		long t2 = System.currentTimeMillis();
+//		System.out.println("MergeSort time: " +(t2-t1));
+//		p.printBuff();
+//		p.normalize();
+//		p.printBuffScaled();
+//		p.saveImage();
+//	}
+}
+
+***************
+
+PROCESSOR
+
+package project5;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+
+import javax.imageio.ImageIO;
+
+/**
+ * @author Rachael Birky
+ * @version 05.09.2014
+ * 
+ * <p> Processor.java
+ * <p> This class processes data using threads and ForkJoin
+ * 		It 1. sorts 2. normalizes 3. saves an image
+ */
+public class Processor implements Runnable{
+
+	ForkJoinPool threadPool = new ForkJoinPool();
+
+	int[] buff2;
+	int[] buff2Scaled;
+	int N;
+	int THRESHOLD;
+
+	public Processor(int[] aBuffer, int N, int T){
+		buff2 = aBuffer;
+		buff2Scaled = new int[buff2.length];
+		this.N = N;
+		this.THRESHOLD = T;
+	}
+
+	//Temporary method
+	public void sort(){
+		MergeSort.mergeSort(buff2);
+	}
+
+	//Debug method
+	public void printBuff(){
+		for(int i : buff2){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	//Boot-strap mergeSort
+	public void threadMergeSort(){
+		threadMergeSort(buff2, 0, buff2.length-1);
+	}
+
+	public void threadMergeSort(int[] array, int first, int last){
+		if(last-first < THRESHOLD){
+			MergeSort.insertionSort(array); return;
+		}
+		int[] tempArray = new int[array.length];
+		threadPool.invoke(new Sorter(array, tempArray, first, last, THRESHOLD));
+	}
+
+	@SuppressWarnings("serial")
+	static class Sorter extends RecursiveAction {
+
+		private int THRESHOLD;
+		int[] array;
+		int[] tempArray;
+		int first;
+		int last;
+
+		public Sorter(int[] array, int[] tempArray, int first, int last, int T) {
+			this.THRESHOLD = T;
+			this.array = array;
+			this.tempArray = tempArray;
+			this.first = first;
+			this.last = last;
+		}
+
+		protected void compute() {
+			if (last-first < THRESHOLD)
+				MergeSort.insertionSort(array);
+			else {
+				int center = (first+last)/2;
+				Sorter sortLeft = new Sorter(array, tempArray, first, center, THRESHOLD); //merge sort left
+				Sorter sortRight = new Sorter(array, tempArray, center, last, THRESHOLD); //merge sort right
+				invokeAll(sortLeft, sortRight);
+				MergeSort.merge(array, first, center, last);
+			}
+		}
+
+	}
+
+
+	/**
+	 * @author Rachael Birky
+	 * @version 05.09.2014
+	 * 
+	 * <p> MergeSort.java
+	 * <p> Static class with custom MergeSort and InsertionSort methods 
+	 */
+	public static class MergeSort{
+
+		/**
+		* <p> Method: mergeSort()
+		* <p> Description: Boot-strap method that takes an array and
+		* 		provides the necessary information to the recursive function
+		* @param data - array to be sorted 
+		*/
+		public static void mergeSort(int[] data){
+			mergeSort(data, 0, data.length);
+		}
+
+		/**
+		* <p> Method: mergeSort()
+		* <p> Description: Recursive function that splits data in half
+		* 		and sorts by swapping subArrays
+		* @param data - list to be sorted
+		* @param first - index of first item
+		* @return size - size of array (idex of last item)
+		*/
+		public static void mergeSort(int[ ] data, int first, int size){
+			int leftSize;
+			int rightSize;
+
+			if (size > 1){
+				leftSize = size / 2;
+				rightSize = size - leftSize;
+
+				mergeSort(data, first, leftSize);
+				mergeSort(data, first + leftSize, rightSize);
+				merge(data, first, leftSize, rightSize);
+			}
+		} 
+
+		/**
+		* <p> Method: merge()  
+		* <p> Description: Combines two sorted lists into one
+		* @param data - array of data
+		* @param first - beginning index of data
+		* @param leftSize - size of first "array"
+		* @param rightSize - size of second "array" 
+		*/
+		private static void merge(int[ ] data, int first, int leftSize, int rightSize){
+			int[ ] temp = new int[leftSize+rightSize];
+			int index  = 0;
+			int leftIndex = 0;
+			int rightIndex = 0;
+			int i;
+			while ((leftIndex < leftSize) && (rightIndex < rightSize)){
+				if (data[first + leftIndex] < data[first + leftSize + rightIndex])
+					temp[index++] = data[first + (leftIndex++)];
+				else
+					temp[index++] = data[first + leftSize + (rightIndex++)];
+			}
+
+			while (leftIndex < leftSize){
+				temp[index++] = data[first + (leftIndex++)];
+			}
+			while (rightIndex < rightSize){
+				temp[index++] = data[first + leftSize + (rightIndex++)];
+			}
+
+			for (i = 0; i < leftSize+rightSize; i++)
+				data[first + i] = temp[i];
+		}
+
+		/**
+		* <p> Method: insertionSort()
+		* <p> Description: Sorts by inserting the item at the current index
+		* 		so that all items before it are lesser in value
+		* @param subArray - list to be sorted
+		*/
+		public static void insertionSort(int[] subArray){
+			System.out.println("Using insertion sort.");
+			for (int i = 1; i<subArray.length; i++){
+				int toCompare = subArray[i];
+				int j = i;
+				while (j>0 && (subArray[j-1] > toCompare)){
+					subArray[j] = subArray[j-1];
+					j--;
+				}
+				subArray[j] = toCompare;
+			}
+		}
+
+	}
+
+	/**
+	* <p> Method: normalize()
+	* <p> Description: Adjusts the range of data to the range 0-255
+	*/
+	public void normalize(){
+		int i=0;
+		for(Integer x : buff2){
+			int min = 0;
+			int max = 4096;
+			int a = 0;
+			int b = 255;
+			int newX = ((((b-a)*(x-min))/(max-min))+a);
+			buff2Scaled[i] = newX;
+			i++;
+		}		
+	}
+
+	//Debug method
+	public void printBuffScaled(){
+		for(int i : buff2Scaled){
+			System.out.print(i+" ");
+		}
+		System.out.println();
+	}
+
+	/**
+	* <p> Method: saveImage()
+	* <p> Description: Saves a gradient image representing the sorted
+	* 		and normalized data to the ./images folder
+	*/
+	public void saveImage(){
+		int width = N;
+		int height = N;
+
+		if (buff2Scaled.length != N*N){
+			System.out.println("ERROR");
+			return;
+		}
+
+		try{
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+			int index = 0;
+			int value = 0;
+			while (index<buff2Scaled.length) {
+				value = buff2Scaled[index];
+				bufferedImage.setRGB((int)index%width, (int)index/width, (value << 16) + (value << 8) + value);
+				index++;
+			}
+			String filename = String.format("images/output_image_N%d_T%d.jpg", N, THRESHOLD);
+			System.out.println("Saving image: " + filename);
+			ImageIO.write(bufferedImage, "jpg", new File(filename));
+		}
+		catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
+
+
+
+	}
+
+	//Change .sort() to fork/join method
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		long t1 = System.currentTimeMillis();
+		sort(); //CHANGE TO FORK/JOIN sort
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1));
+		normalize();
+		saveImage();
+	}
+
+	//Unit Testing
+	public static void main(String[] args){
+		int[] l = new int[100];
+		int n = 10;
+		int t = 10;
+		Random generator = new Random();
+		for (int i=0; i<100; i++){
+			l[i]= generator.nextInt(4097);
+		}
+		Processor p = new Processor(l,n,t);
+		long t1 = System.currentTimeMillis();
+		//p.sort();
+		p.threadMergeSort();
+		long t2 = System.currentTimeMillis();
+		System.out.println("MergeSort time: " +(t2-t1));
+		p.printBuff();
+		p.normalize();
+		p.printBuffScaled();
+		p.saveImage();
+	}
+}
+
+**********************
+
+package project5;
+
+public class Project5 {
+
+
+	
+	public static void main (String [] args) {
+
+		try {
+			int runNum = 1;
+			System.out.println("Available processors (cores): "+Runtime.getRuntime().availableProcessors());
+			System.out.println("Available memory (bytes): "+Runtime.getRuntime().freeMemory());
+			System.out.println();
+
+			for(int i=0;i<3;i++){
+				
+				int n=(int)Math.pow(2,i);
+
+				Buffer buff = new Buffer(n);
+				Thread buffThread = new Thread(buff);
+				buffThread.start();
+
+				Satellite sat = new Satellite(buff, n);
+				Thread satThread = new Thread(sat);
+				satThread.start();
+
+				for(int j=1;j<6;j++){
+					int t=(int)Math.pow(10,j);
+					
+					Receiver rec = new Receiver(buff, n, t);
+					Thread recThread = new Thread(rec);
+					recThread.start();
+
+					System.out.printf("Run #%d, i=%d, j=%d, N=%d, B1=%d, B2=%d, T=%d\n", runNum, i, j, n, 1, 2, t);
+					
+					//Processing done in receiver class
+					
+					
+					//tell threads to stop
+					//recThread.join();
+					rec.keepRunning = false;
+					runNum++;
+				}
+				//buffThread.join();
+				//satThread.join();
+				//tell threads to stop
+				buff.keepRunning = false;
+				sat.keepRunning = false;
+			}
+		} catch (Exception e ) {
+			System.out.println(e.getMessage()) ;
+		}
+
+	}
+
+}
+
+****************
+package project5;
+
+import java.util.Arrays;
+
+public class MergeSort{
+
+	
+	public static void mergeSort(int [] array){
+		if(array.length>2){
+			int center = array.length/2;
+			int[] left = Arrays.copyOfRange(array, 0, center);
+			int[] right = Arrays.copyOfRange(array, center, array.length);
+			
+			mergeSort(left);
+			mergeSort(right);
+
+			merge(left, right, array);
+		}
+	}
+
+	public static void merge(int[] left, int[] right, int[] original){
+
+		int li = 0;
+		int ri = 0;
+		int i = 0;
+
+		//loop until one list is empty
+		while((li<left.length) && (ri<right.length)){
+			//choose smaller value from current index of each list
+			if(left[li] <= right[ri]){
+				original[i] = left[li];
+				li++; i++;
+			}
+			else{
+				original[i] = right[ri];
+				ri++; i++;
+			}
+		}
+		//if left is longer, fill in the rest
+		while(li<=left.length-li){
+			original[i] = left[li];
+			li++; i++;
+		}
+		//if right is longer, fill in the rest
+		while(ri<=right.length-ri){
+			original[i] = right[ri];
+			ri++; i++;
+		}
+	}
+
+	public static void insertionSort(int[] subArray){
+		//compare each item
+		for (int i = 1; i<subArray.length; i++){
+			int toCompare = subArray[i];
+			int j = i;
+			//to every other other item before it, until all items to left are smaller
+			while (j>0 && (subArray[j-1] > toCompare)){
+				subArray[j] = subArray[j-1];
+				j--;
+			}
+			subArray[j] = toCompare;
+		}
+	}
+
+}
+
+
+*********************
+
+package project5;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.util.LinkedList;
+
+import javax.imageio.ImageIO;
+
+/**
+ * @author Rachael Birky
+ * @version 
+ * 
+ * <p> .java
+ * <p> This class 
+ */
+public class Processor extends Thread{
+
+	LinkedList<Integer> buff2;
+	byte[] buff2Scaled;
+	int N;
+	int T;
+
+	public Processor(LinkedList<Integer> aBuffer, int N, int T){
+		buff2 = aBuffer;
+		buff2Scaled = new byte[buff2.size()];
+		this.N = N;
+		this.T = T;
+	}
+
+	public void mergeSort(){
+
+	}
+
+	public void insertionSort(){
+
+	}
+
+	public void normalize(){
+		// Between -128 and 127 and transferred into a byte array
+		int i=0;
+		for(Integer x : buff2){
+			int min = 0;
+			int max = 4096;
+			int a = -128;
+			int b = 127;
+			int intX = (int) x;
+			int newX = ((((b-a)*(intX-min))/(max-min))+a);
+			buff2Scaled[i] = (byte) newX;
+			i++;
+		}		
+	}
+
+	public void saveImage(){
+		try{
+			InputStream in = new ByteArrayInputStream(buff2Scaled);
+			BufferedImage imageFromArray = ImageIO.read(in);
+
+			String filename = "images/output_N"+N+"_T"+T+".jpg";
+			System.out.println("Saving image: "+filename);
+			ImageIO.write(imageFromArray, "jpg", new File(filename));
+		}
+		catch (Exception e){
+			System.out.println("Exception!");
+		}
+	}
+	
+	public void run(){
+		
+	}
+	
+	public static void main(String[] args){
+		LinkedList<Integer> l = new LinkedList<Integer>();
+		int n = 10;
+		int t = 10;
+		for (int i=0; i<n; i++){
+			l.add(i);
+		}
+		Processor p = new Processor(l,n,t);
+		p.normalize();
+		p.saveImage();
+	}
+
+}
+
+
+**********************
+package project5;
+
+import java.util.Arrays;
+
+public class MergeSort implements Runnable{
+
+	static int T;
+
+	public MergeSort(int T){
+		this.T = T;
+	}
+
+	public static void mergeSort(int [] array){
+		if(array.length>2){
+			int center = array.length/2;
+			int[] left = Arrays.copyOfRange(array, 0, center);
+			int[] right = Arrays.copyOfRange(array, center, array.length);
+			
+			System.out.println();
+			System.out.println("Left List");
+			for (int i = 0; i<left.length; i++){
+				System.out.print(left[i]+" ");
+			}
+			System.out.println();
+			System.out.println("Right List");
+			for (int i = 0; i<right.length; i++){
+				System.out.print(right[i]+" ");
+			}
+
+			//Call recursively unless at Threshold for Insertion Sort
+			if(left.length > T)
+				mergeSort(left);
+			else{
+				insertionSort(left);
+			}
+
+			if(right.length > T)
+				mergeSort(right);
+			else
+				insertionSort(right);
+			
+			merge(left, right, array);
+		}
+	}
+
+	public static void merge(int[] left, int[] right, int[] original){
+
+		int li = 0;
+		int ri = 0;
+		int i = 0;
+
+		//loop until one list is empty
+		while((li<left.length) && (ri<right.length)){
+			//choose smaller value from current index of each list
+			if(left[li] <= right[ri]){
+				original[i] = left[li];
+				li++; i++;
+			}
+			else{
+				original[i] = right[ri];
+				ri++; i++;
+			}
+		}
+		//if left is longer, fill in the rest
+		while(li<=left.length-li){
+			original[i] = left[li];
+			li++; i++;
+		}
+		//if right is longer, fill in the rest
+		while(ri<=right.length-ri){
+			original[i] = right[ri];
+			ri++; i++;
+		}
+	}
+
+	public static void insertionSort(int[] subArray){
+		//compare each item
+		for (int i = 1; i<subArray.length; i++){
+			int toCompare = subArray[i];
+			int j = i;
+			//to every other other item before it, until all items to left are smaller
+			while (j>0 && (subArray[j-1] > toCompare)){
+				subArray[j] = subArray[j-1];
+				j--;
+			}
+			subArray[j] = toCompare;
+		}
+	}
+
+	public void run() {
+
+	}
+
+	public static void main(String[] args){
+		int[] testO = {2,5,6,1,3,4,7};
+		int[] testL = {5,2,6};
+		int[] testR = {7,3,4,1};
+		MergeSort.mergeSort(testO);
+		System.out.println();
+		for (int i = 0; i<testO.length; i++){
+			System.out.print(testO[i]+" ");
+		}
+
+	}
+}
+***************
+
+MERGESORT CLASS
+package project5;
+
+import java.util.Arrays;
+
+public class MergeSort implements Runnable{
+
+	int T;
+
+	public MergeSort(int T){
+		this.T = T;
+	}
+
+	public void mergeSort(int [] array){
+		if(array.length>2){
+			int center = array.length/2;
+			int[] left = Arrays.copyOfRange(array, 0, center);
+			int[] right = Arrays.copyOfRange(array, center, array.length);
+
+			//Call recursively unless at Threshold for Insertion Sort
+			if(left.length > T)
+				mergeSort(left);
+			else
+				insertionSort(left);
+
+			if(right.length > T)
+				mergeSort(right);
+			else
+				insertionSort(right);
+
+			merge(left, right, array);
+		}
+	}
+
+	public static void merge(int[] left, int[] right, int[] original){
+
+		int li = 0;
+		int ri = 0;
+		int i = 0;
+
+		//loop until one list is empty
+		while((li<left.length) && (ri<right.length)){
+			//choose smaller value from current index of each list
+			if(left[li] <= right[ri]){
+				original[i] = left[li];
+				li++; i++;
+			}
+			else{
+				original[i] = right[ri];
+				ri++; i++;
+			}
+		}
+		//if left is longer, fill in the rest
+		while(li<=left.length-li+1){
+			original[i] = left[li];
+			li++; i++;
+		}
+		//if right is longer, fill in the rest
+		while(ri<=right.length-ri+1){
+			original[i] = right[ri];
+			ri++; i++;
+		}
+	}
+
+	public static void insertionSort(int[] subArray){
+		//compare each item
+		for (int i = 1; i<subArray.length; i++){
+			int toCompare = subArray[i];
+			int j = i;
+			//to every other other item before it, until all items to left are smaller
+			while (j>0 && (subArray[j-1] > toCompare)){
+				subArray[j] = subArray[j-1];
+				j--;
+			}
+			subArray[j] = toCompare;
+		}
+	}
+
+	public void run() {
+
+	}
+
+	public static void main(String[] args){
+		int[] testO = {2,5,6,1,3,4,7};
+		int[] testL = {2,5,6};
+		int[] testR = {1,3,4,7};
+		MergeSort.merge(testL, testR, testO);
+		for (int i = 0; i<testO.length; i++){
+			System.out.print(testO[i]+" ");
+		}
+
+	}
+}
+
+***************
+MERGE SORT		
+//Loop for length of original list
+		//assuming left.length + right.length = original.length
+		for (int k = 0; k < original.length; k++){
+			//if out of right range or in left range and left less than right
+			//if left item <= right item
+			if((j > right.length) || (left[i] <= right[i] && i < left.length)){
+				original[k] = left[i];
+				++i;
+			}
+			//if out of right range and out of left range or left item > right item 
+			else {
+				original[k] = right[j];
+				++j;
+			}
+		}
+****************
+PROJ5
+package project5;
+
+import java.util.*;
+
+/**Project 5 class*/
+public class Project5{
+
+	/**Project 5 main*/
+	public static void main (String[] args){
+		System.out.println("Available processors (cores): "+Runtime.getRuntime().availableProcessors());
+		System.out.println("Available memory (bytes): "+Runtime.getRuntime().freeMemory());
+		System.out.println();
+
+
+		try{
+			int run=1;
+
+			for(int i=8;i<12;i++){		//N values
+
+				int N=(int)Math.pow(2,i);
+
+				Buffer B1 = new Buffer(N);
+				Thread bufferThread = new Thread(B1);
+				bufferThread.start();
+
+				Satellite satellite = new Satellite(B1, N);
+				Thread satelliteThread = new Thread(satellite);
+				satelliteThread.start();
+				
+				Receiver receiver = new Receiver(B1, N);
+				Thread receiverThread = new Thread(receiver);
+				receiverThread.start();
+				
+				for(int j=1;j<6;j++){	//T values
+					
+					int T=(int)Math.pow(10,j);
+					
+					int buff1Size = 1;
+					int buff2Size = 2;
+
+					System.out.printf("Run #%d, i=%d, j=%d, N=%d, "
+							+ "B1=%d, B2=%d, T=%d\n", run, i, j, N, buff1Size, buff2Size, T);
+
+					long t1 = System.currentTimeMillis();
+					//Call Merge class?
+					long t2 = System.currentTimeMillis();
+					long timeElapsed = t2-t1;
+					
+					System.out.println("Time mergesort: "+timeElapsed+"ms");
+					
+					//Call Processor
+					
+					System.out.println("Saving image: ");
+					System.out.println();
+					run++;
+
+					
+					
+				}
+				
+				receiver.run = false;
+				B1.run = false;
+				satellite.run = false;
+				
+				satelliteThread.join();
+				receiverThread.join();
+			}
+		}
+		catch(Exception e){
+
+		}
+
+	}
+}
+
+
+**********************
+RECEIVER
+package project5;
+
+import java.util.LinkedList;
+
+/**
+ * @author Rachael Birky
+ * @version 
+ * 
+ * <p> .java
+ * <p> This class 
+ */
+public class Receiver extends Thread{
+
+	boolean debug = true;
+	
+	Buffer buff;
+	private LinkedList<Integer> buff2;
+	int N;
+	public boolean run;
+	
+	public Receiver(Buffer aBuffer, int N){
+		buff = aBuffer;
+		this.N = N;
+	}
+	
+	synchronized public int getB2Size(){
+		return buff2.size();
+	}
+	
+	synchronized public void printBuff(){
+		for(Integer i : buff2)
+			System.out.println(i);
+	}
+	
+	public void run(){
+
+		run = true;
+		Integer item;
+		
+		try{
+			//buff.waitForData();
+			while(run){
+				buff.waitForData();
+				buff2 = new LinkedList<Integer>();
+				for(int i=0; i< (N*N); i++){
+					item = buff.remove();
+					if(debug) System.out.println("*Receiving "+item);
+					buff2.add(item);
+				}
+			}
+
+		}
+		catch(Exception e){
+			System.out.println("Interrupted!");
+		}
+
+	}
+	
+}
+
+
+*********************
+SATELLITE
+package project5;
+import java.util.Random;
+
+/**
+ * @author Rachael Birky
+ * @version 
+ * 
+ * <p> .java
+ * <p> This class 
+ */
+public class Satellite extends Thread{
+
+	boolean debug = true;
+	
+	Random generator = new Random();
+	Buffer buff;
+	int N;
+	public boolean run;
+	
+	public Satellite(Buffer aBuffer, int N){
+		buff = aBuffer;
+		this.N = N;
+	}
+
+	synchronized public void printBuff(){
+		buff.printBuff();
+	}
+	
+	public void run(){
+		try{
+
+			run = true;
+
+			//for(int i=0; i<(2*N*N); i++){
+			while(run){
+				int item = generator.nextInt(4097);
+				if (debug) System.out.println("Producing "+item);
+				buff.waitForRoom();
+				buff.add(item);
+			}
+
+		}
+		catch(Exception e){
+			System.out.println("Interrupted!");
+		}
+	}
+	
+	public static void main(String[] args){
+		int run=1;
+
+		for(int i=1;i<3;i++){
+		
+		int n = (int)Math.pow(2,i);
+		
+		System.out.println("RUN "+run);
+		
+		Buffer buffer = new Buffer(n);
+		Thread buf = new Thread(buffer);
+		buf.start();
+		
+		Satellite aSatellite = new Satellite(buffer, n);
+		Thread sat = new Thread(aSatellite);
+		sat.start();
+		
+		Receiver aReceiver = new Receiver(buffer, n);
+		Thread rec = new Thread(aReceiver);
+		rec.start();
+		
+	      try {
+	          // Wait for producer to finish?
+	    	  sat.join();
+	    	  
+	          // tell buffer and receiver to stop
+	    	  aSatellite.run = false;
+	          buffer.run = false;
+	          aReceiver.run = false;
+	          run++;
+	       } catch (Exception e ) {
+	          System.out.println("Interrupted!");
+	       }
+		}
+	}
+
+}
+
+
+
+***************************
+BUFFER
+package project5;
+
+import java.util.LinkedList;
+
+/**
+ * @author Rachael Birky
+ * @version 
+ * 
+ * <p> .java
+ * <p> This class 
+ */
+public class Buffer extends Thread{
+
+	boolean debug = true;
+	
+	private LinkedList<Integer> buff;
+	int size;
+	int N;
+	public boolean run;
+	
+	public Buffer(int N){
+		this.N = N;
+		size = (N*N*2);
+		buff = new LinkedList<Integer>();
+	}
+	
+	synchronized public boolean isEmpty(){
+		return buff.isEmpty();
+	}
+
+	synchronized public boolean isFull(){
+		return buff.size() >= size;
+	}
+
+	synchronized public void add(int item){
+		if (buff.size()>=size) return;
+		if (debug) System.out.println("Adding "+item);
+		buff.addLast(item);
+		notify();
+	}
+
+	synchronized public Integer remove(){
+		if (buff.isEmpty()) return null;
+		notify();
+		return buff.removeFirst();
+	}
+	
+	synchronized public void waitForData(){
+		try{
+			while (buff.size() < (N*N)) wait();
+		}
+		catch(InterruptedException e){
+			//Interrupted
+		}
+	}
+
+	synchronized public void waitForRoom(){
+		try{
+			while (isFull()) wait();
+		}
+		catch(InterruptedException e){
+			//Interrupted
+		}
+	}
+
+	synchronized public int getSize(){
+		return this.size;
+	}
+	
+	synchronized public void printBuff(){
+		for(Integer i : buff)
+			System.out.println(i);
+	}
+
+	public void run(){
+		run = true;
+		try{
+			while(run){
+				//Do something
+			}
+		}
+		catch(Exception e){
+			System.out.println("Interrupted!");
+		}
+	}
+
+}
+
+***********************
+
+package project5;
+
+import java.util.Random;
+
+/**Project 5 class*/
+public class Project5{
+
+	/**Project 5 main*/
+	public static void main (String[] args){
+		System.out.println("Available processors (cores): "+Runtime.getRuntime().availableProcessors());
+		System.out.println("Available memory (bytes): "+Runtime.getRuntime().freeMemory());
+		System.out.println();
+
+		int run=1;
+
+		for(int i=8;i<12;i++){ //N values
+
+			int N=(int)Math.pow(2,i);
+
+			Buffer B1 = new Buffer(N);
+
+			Satellite satellite = new Satellite(B1, N);
+			Thread satelliteThread = new Thread(satellite);
+			satelliteThread.start();
+
+			for(int j=1;j<6;j++){ //T values
+
+				int T=(int)Math.pow(10,j);
+				Receiver receiver = new Receiver(B1, N);
+				Thread receiverThread = new Thread(receiver);
+				receiver.start();
+
+				//receiver.getBuffSize()
+				System.out.printf("Run #%d, i=%d, j=%d, N=%d, "
+						+ "B1=%d, B2=%d, T=%d\n", run, i, j, N, B1.getSize(), 2, T);
+
+				System.out.println("Time mergesort: ");
+				System.out.println("Saving image: ");
+				System.out.println();
+				receiver.end();
+				run++;
+			}
+			
+			satellite.end();
+			B1.end();
+		}
+	}
+}
+
+********************
+public class Receiver extends Thread{
+
+	Buffer buff;
+	int[] buff2;
+	int N;
+	public boolean run;
+	
+	public Receiver(Buffer aBuffer, int N){
+		buff = aBuffer;
+		this.N = N;
+	}
+	
+	public void run(){
+
+
+
+		if(buff.getNumItems()==(N*N)){
+			try{
+				
+				buff2 = buff.remove();
+				
+			} catch (Exception e){
+
+			}
+		}
+	}
+	
+	public int getBuffSize(){
+		return buff2.length;
+	}
+	
+}
+
+************************
+public class Satellite extends Thread{
+
+	Random generator = new Random();
+	Buffer buff;
+	boolean end;
+	int N;
+	
+	public Satellite(Buffer aBuffer, int N){
+		this.buff = aBuffer;
+		end = false;
+		this.N = N;
+	}
+
+	public void run(){
+		while(!end){
+			while(!buff.isFull()){
+				try{
+					int item = generator.nextInt(4097);
+					System.out.println(item);
+					buff.add(item);
+				} catch (Exception e){
+
+				}
+			}
+		}
+	}
+	
+	public void end(){
+		end = true;
+	}
+
+}
+
+************************
+package project5;
+
+/**
+ * @author Rachael Birky
+ * @version 
+ * 
+ * <p> .java
+ * <p> This class 
+ */
+public class Buffer extends Thread{
+
+	private int[] buff;
+	int size;
+	int numItems;
+	int nSquared;
+
+	public boolean keepRunning;
+	
+	public Buffer(int N){
+		nSquared = N*N;
+		size = (nSquared*2);
+		buff = new int[size];
+		numItems=0;
+	}
+	
+	synchronized public boolean isEmpty(){
+		return (numItems == 0);
+	}
+
+	synchronized public boolean isFull(){
+		return (numItems >= size);
+	}
+
+	synchronized public void add(int item){
+		if (buff.isFull()) return;
+		buff[numItems] = item;
+		numItems++;
+		notify();
+	}
+
+	synchronized public int[] remove(){
+		int[] buff2 = new int[nSquared];
+		
+		for(int i =0; i<nSquared; i++){
+			buff2[i] = buff[i];
+		}
+		
+		return buff2;
+	}
+	
+	public int getSize(){
+		return buff.length;
+	}
+	
+	public void run(){
+		while (!end){
+			
+		}
+	}
+	
+	public void end(){
+		end = true;
+	}
+
+		synchronized public int getNumItems(){
+		return this.numItems;
+	}
+}
+
+**********************
+package project5;
+
+import java.util.Random;
+
+/**Project 5 class*/
+public class Project5{
+
+	/**Need to make a lock object so both buffers are synchronized?*/
+	int[] B_1;
+	int[] B_2;
+	//private final Object LOCK = new Object();
+	//should also encapsulate index and numItems...?
+	
+	int index;
+	int numItems;
+	int N;
+	int T;
+
+	/** Satellite Class*/
+	private class Satellite implements Runnable{
+
+		Random generator = new Random();
+
+		public Satellite(){
+
+		}
+
+		public void run(){
+
+			try{
+				int time = generator.nextInt(10200);
+				int item = generator.nextInt(4097);
+
+				synchronized(B_1){
+					//add item to buffer if not full
+					if(!bufferFull()){
+						B_1[index] = item;
+						numItems++;
+					}
+				}
+
+				Thread.sleep(time);
+
+			} catch (Exception e){
+
+			}
+		}
+
+		private boolean bufferFull(){
+
+			synchronized(B_1){
+				index=0;
+				for (int i=0; i<B_1.length; i++){
+					if (B_1[i] == -1) {index = i; return false;}
+				}
+				return true;
+			}
+		}
+	}
+
+
+	/**Buffer Class*/
+	private class Buffer implements Runnable{
+
+		int size;
+
+		public Buffer(){
+			size = 2*(N*N);
+			B_1 = new int[size];
+
+			for (int i=1; i<size; i++)
+				B_1[i] = -1;
+		}
+
+		public void run(){
+/*			try{
+
+				synchronized(B_1){
+					
+				}
+
+			} catch (Exception e){
+
+			}
+*/
+		}
+
+	}
+
+	/**Receiver Class*/
+	private class Receiver implements Runnable{
+		
+		public void run(){
+			try{
+				//happens as soon as numItems>N?
+				synchronized(B_1){
+					int N2 = N*N;
+					if(numItems>N2){
+						
+						B_2 = new int[N2];
+						
+						//move items from B_1 to B_2
+						for(int i=0; i<numItems; i++){
+							B_2[i] = B_1[i];
+						}
+						
+						//fill rest with sentinel values?
+						if (numItems < B_2.length){
+							for(int j = numItems; j<B_2.length; j++){
+								B_2[j] = -1;
+							}
+						}
+						
+						//make B_1 logically empty
+						clearB_1();
+					}
+				}
+
+			} catch (Exception e){
+
+			}
+		}
+		
+		private void clearB_1(){
+			for (int i=0; i<B_1.length;i++)
+				B_1[i] = -1;
+			index=0;
+			numItems=0;
+		}
+
+	}
+
+	
+	/**Processing Class*/
+	private class Processing implements Runnable{
+		
+		public void run(){
+			
+			//
+			
+		}
+		
+	}
+	
+	/** Actual code to run from main*/
+	public void doThis(){
+		//declare
+		Thread satellite;
+		Thread buffer;
+		Thread receiver;
+		Thread processing;
+
+		//initialize
+		buffer = new Thread(new Buffer());
+		satellite = new Thread (new Satellite());
+		receiver = new Thread(new Receiver());
+		
+		
+		//.start()
+
+	}
+
+	public Project5(int aN, int aT){
+		this.N = aN;
+		this.T = aT;
+	}
+
+	/**Project 5 main*/
+	public static void main (String[] args){
+		System.out.println("Available processors (cores): "+Runtime.getRuntime().availableProcessors());
+		System.out.println("Available memory (bytes): "+Runtime.getRuntime().freeMemory());
+		System.out.println();
+
+		int run=1;
+		//execute 20 times
+		for(int i=8;i<12;i++){
+			for(int j=1;j<6;j++){
+				int N=(int)Math.pow(2,i);
+				int T=(int)Math.pow(10,j);
+				//run program passing N value
+				System.out.printf("Run #%d, i=%d, j=%d, N=%d, "
+						+ "B1=%d, B2=%d, T=%d\n", run, i, j, N, 1, 2, T);
+
+				Project5 obj = new Project5(N, T);
+				obj.doThis();
+
+				System.out.println("Time mergesort: ");
+				System.out.println("Saving image: ");
+				System.out.println();
+				run++;
+			}
+		}
+	}
+}

@@ -1,0 +1,13 @@
+         // quick phase
+         //
+         for (int i = 1 ; i <= 30 ; i++) {
+            while ( buf.isFull() ) {
+               label.setText("Buffer full") ;
+               Thread.sleep(100) ;
+            }
+
+            n = prg.nextInt(100) ; // random number < 100
+            buf.add(n) ;
+            label.setText("Added " + n) ;
+            Thread.sleep(500) ;
+         }

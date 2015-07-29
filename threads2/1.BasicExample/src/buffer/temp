@@ -1,0 +1,10 @@
+            itr = q.listIterator(0) ;
+            qStr = "" ;
+
+            while ( itr.hasNext() ) {
+               qStr += String.format("[%2d]", itr.next()) ;
+            }
+
+            for (int i = q.size() ; i < limit ; i++) {
+               qStr += "[xx]" ;
+            }

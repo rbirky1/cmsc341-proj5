@@ -1,0 +1,61 @@
+Run #1, i=8, j=1, N=256, B1=131072, B2=65536, T=10
+MergeSort time: 26ms
+Saving image: images/output_image_N256_T10.jpg
+
+Run #2, i=8, j=2, N=256, B1=131072, B2=65536, T=100
+MergeSort time: 4ms
+Saving image: images/output_image_N256_T100.jpg
+
+Run #3, i=8, j=3, N=256, B1=131072, B2=65536, T=1000
+MergeSort time: 5ms
+Saving image: images/output_image_N256_T1000.jpg
+
+Run #4, i=8, j=4, N=256, B1=131072, B2=65536, T=10000
+MergeSort time: 51ms
+Saving image: images/output_image_N256_T10000.jpg
+
+Run #5, i=8, j=5, N=256, B1=131072, B2=65536, T=100000
+MergeSort time: 823ms
+Saving image: images/output_image_N256_T100000.jpg
+
+
+Run #1, i=9, j=1, N=512, B1=524288, B2=262144, T=10
+MergeSort time: 57ms
+Saving image: images/output_image_N512_T10.jpg
+
+Run #2, i=9, j=2, N=512, B1=524288, B2=262144, T=100
+MergeSort time: 261ms
+Saving image: images/output_image_N512_T100.jpg
+
+Run #3, i=9, j=3, N=512, B1=524288, B2=262144, T=1000
+MergeSort time: 70ms
+Saving image: images/output_image_N512_T1000.jpg
+
+Run #4, i=9, j=4, N=512, B1=524288, B2=262144, T=10000
+MergeSort time: 101ms
+Saving image: images/output_image_N512_T10000.jpg
+
+Run #5, i=9, j=5, N=512, B1=524288, B2=262144, T=100000
+MergeSort time: 892ms
+Saving image: images/output_image_N512_T100000.jpg
+
+
+Run #1, i=10, j=1, N=1024, B1=2097152, B2=1048576, T=10
+MergeSort time: 266ms
+Saving image: images/output_image_N1024_T10.jpg
+
+Run #2, i=10, j=2, N=1024, B1=2097152, B2=1048576, T=100
+MergeSort time: 128ms
+Saving image: images/output_image_N1024_T100.jpg
+
+Run #3, i=10, j=3, N=1024, B1=2097152, B2=1048576, T=1000
+MergeSort time: 138ms
+Saving image: images/output_image_N1024_T1000.jpg
+
+Run #4, i=10, j=4, N=1024, B1=2097152, B2=1048576, T=10000
+MergeSort time: 706ms
+Saving image: images/output_image_N1024_T10000.jpg
+
+Run #5, i=10, j=5, N=1024, B1=2097152, B2=1048576, T=100000
+MergeSort time: 3546ms
+Saving image: images/output_image_N1024_T100000.jpg

@@ -1,0 +1,40 @@
+Hi everyone,
+   Some of you brought to my attention yesterday that (a) the project #5 posted online is not the latest version of the project that I have been discussing with some of you and that (b) the HTML version of the project is not working. Shawn Lupoli will be working those technical issues today.
+
+   Nothing in the project has changed.  If you are done, nothing has changed, you are done. If you are currently working on your project, just read the updated requirements (attached) which provides additional information and guidance.  If you haven't started your project yet, you still have a week to do so, but please don't wait until the last minute.
+
+   The latest document provides additional information including:
+
+(1) Where to get help for Producer / Consumer / Buffer?
+See "Threads - Coded Examples” on Blackboard. Specifically study the 3.Polling, 4.Wait, and 5.WaitAgain programs that are under the same zip file in blackboard or here http://userpages.umbc.edu/ slupoli/notes/DataStructures/code/threads/
+
+(2) Where to get help for how to implement your MergeSort using Fork/Join?
+See slides 34 − 39 in Blackboard. (Click on file called Parallel Programing - 2 - Caban). The easiest way to implement this is by following the pseudocode shown in slide 39.
+
+(3) How to normalize data:
+You can do this many different ways.  I added a formula to the latest project description just in case you want to use that method.
+
+(4) Output:
+See complete output in the latest project description.  Instead of showing time in seconds, let's show it in milliseconds.
+
+(5) Main driver:
+See pseudocode for main driver in latest project description.
+
+(6) Running Time analysis:
+See sample plots illustrating the running time analysis.
+
+(7) To make it easier for you all and much quicker to run the program, you don't have to wait randint(10,200) after each random integer is generated.
+
+(8) For your submission, the "images" folder should not have any images.
+
+(9) B1 should only be created once for every possible N.
+
+(10) You must use Java 7
+ 
+(11) Your line plots will not look the same way as they did for me.  Remember that an operating system has many concurrent tasks, so sometimes a program that should run in 400ms might take three times that because there other processes using the CPU(s).  The correct way to do a time analysis is by running a program multiple times and showing the average.  That's NOT required for this project.  However if you would like to do it, that's perfectly fine too.  You will see a lot more of this in your Operating Systems course.
+
+
+If you have any questions, please let me know.
+
+Sincerely,
+-Jesus Caban
